@@ -370,8 +370,8 @@ codeunit 50020 "DocuSignManagementVRS"
         ExceptionL: DotNet Exception;
         RecipientsL: DotNet Recipients;
         SignerL: DotNet Signer;
+        Scopes: DotNet List_Of_T;
         ListL: DotNet List_Of_T;
-        EmptyStringL: DotNet String;
         SystemIOFileL: DotNet File0;
         ByteArrayL: DotNet Array;
         AccountIDL: Text;
@@ -383,11 +383,12 @@ codeunit 50020 "DocuSignManagementVRS"
         DocuSignSetup.GET;
         ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
 
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, EmptyStringL);
-        ListL.Add('signature');
+        CreateStringList(Scopes);
+        Scopes.Add('signature');
+
         ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, ListL);
+          DocuSignSetup."Integrator Key", DocuSignSetup."API Username",
+          DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, Scopes);
 
         IF NOT LoginApi(AccountIDL) THEN BEGIN
             ExceptionL := GETLASTERROROBJECT;
@@ -436,8 +437,7 @@ codeunit 50020 "DocuSignManagementVRS"
         ExceptionL: DotNet Exception;
         EnvelopeUpdateSummaryL: DotNet EnvelopeUpdateSummary;
         UpdateOptionsL: DotNet EnvelopesApi_UpdateOptions;
-        ListL: DotNet List_Of_T;
-        EmptyStringL: DotNet String;
+        Scopes: DotNet List_Of_T;
         AccountIDL: Text;
     begin
         UserSetupL.GET(USERID);
@@ -449,11 +449,12 @@ codeunit 50020 "DocuSignManagementVRS"
 
         DocuSignSetup.GET;
         ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, EmptyStringL);
-        ListL.Add('signature');
+
+        CreateStringList(Scopes);
+        Scopes.Add('signature');
+
         ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, ListL);
+          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, Scopes);
 
         IF NOT LoginApi(AccountIDL) THEN BEGIN
             ExceptionL := GETLASTERROROBJECT;
@@ -535,6 +536,20 @@ codeunit 50020 "DocuSignManagementVRS"
         END;
     end;
 
+    local procedure CreateStringList(var Result: DotNet List_Of_T)
+    var
+        EmptyString: DotNet String;
+    begin
+        EmptyString := '';
+        CreateGenericList(Result, EmptyString);
+    end;
+
+    local procedure CreateGenericList(var Result: DotNet List_Of_T; T: DotNet Object)
+    begin
+        Result := Result.List(1);
+        CreateInstanceOfGenericType(Result, T);
+    end;
+
     local procedure CreateInstanceOfGenericType(var Object: DotNet Object; T: DotNet Object)
     var
         DotNetType: DotNet Type;
@@ -543,11 +558,15 @@ codeunit 50020 "DocuSignManagementVRS"
         Activator: DotNet Activator;
     begin
         DotNetType := GetDotNetType(T);
+        if DotNetType.FullName = 'System.Object' then
+            Error('Generic type is undefined!');
         DotNetArray := DotNetArray.CreateInstance(GETDOTNETTYPE(DotNetType), 1);
         DotNetArray.SetValue(GETDOTNETTYPE(T), 0);
 
         GenericType := GETDOTNETTYPE(Object);
+        GenericType := GenericType.GetGenericTypeDefinition();
         DotNetType := GenericType.MakeGenericType(DotNetArray);
+
         Object := Activator.CreateInstance(DotNetType);
     end;
     //  LOCAL PROCEDURE CreateInstanceOfGenericType@1000000008(VAR Object@1000000001 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Object";T@1000000000 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Object");
@@ -569,8 +588,7 @@ codeunit 50020 "DocuSignManagementVRS"
     procedure TestDocuSignConnection()
     var
         ExceptionL: DotNet Exception;
-        ListL: DotNet List_Of_T;
-        EmptyStringL: DotNet String;
+        Scopes: DotNet List_Of_T;
         AccountIDL: Text;
     begin
         //#kay
@@ -579,17 +597,17 @@ codeunit 50020 "DocuSignManagementVRS"
 
         DocuSignSetup.GET;
         ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
-        ListL := ListL.List(1);
 
-        CreateInstanceOfGenericType(ListL, EmptyStringL);
-        ListL.Add('signature');
+        CreateStringList(Scopes);
+        Scopes.Add('signature');
+
         ApiClient.ConfigureJwtAuthorizationFlow(
           DocuSignSetup."Integrator Key",
           DocuSignSetup."API Username",
           DocuSignSetup."OAuth Base Path",
           DocuSignSetup.ExportPrivateRSAKeyFile,
           1,
-          ListL);
+          Scopes);
 
         IF NOT LoginApi(AccountIDL) THEN BEGIN
             ExceptionL := GETLASTERROROBJECT;
@@ -1391,7 +1409,7 @@ dotnet
 
         type("System.Collections.Generic.List`1"; "List_Of_T") { }
         type("System.IO.File"; "File0") { }
-        type("System.Array"; "Array") { }
+        /*type("System.Array"; "Array") { }
         type("System.Convert"; "Convert") { }
         type("System.Exception"; "Exception") { }
         type("System.String"; "String0") { }
@@ -1402,7 +1420,7 @@ dotnet
         type("System.IO.Stream"; "Stream") { }
         type("System.IO.FileStream"; "FileStream") { }
         type("System.IO.FileMode"; "FileMode") { }
-        type("System.IO.SeekOrigin"; "SeekOrigin") { }
+        type("System.IO.SeekOrigin"; "SeekOrigin") { }*/
     }
 }
 

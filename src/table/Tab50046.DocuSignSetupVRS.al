@@ -108,18 +108,21 @@ table 50046 "DocuSignSetupVRS"
     var
         TempBLOBL: Codeunit "Temp Blob";
         FileMgtL: Codeunit "File Management";
-        FilenameWithPath: Text;
-        outstr: OutStream;
-    begin
-        FilenameWithPath := FileMgtL.UploadFile(UploadPrivateRSAKeyFileTxt, 'PrivateRSAKey.pem');
-        FileMgtL.BLOBImportFromServerFile(TempBLOBL, FilenameWithPath);
 
-        IF TempBLOBL.HasValue() THEN BEGIN
-            TempBlobL.CreateOutStream(outstr);
-            "Private RSA Key".CreateOutStream(outstr);
-            "Private RSA Key File Name" := FileMgtL.GetFileName(FilenameWithPath);
-            MODIFY;
-        END;
+        KeyStream: OutStream;
+
+        ClientFileName: Text;
+        ClientFileStream: InStream;
+    begin
+        ClientFileName := 'PrivateRSAKey.pem';
+
+        if UploadIntoStream(UploadPrivateRSAKeyFileTxt, '', '', ClientFileName, ClientFileStream) then begin
+            "Private RSA Key".CreateOutStream(KeyStream);
+            CopyStream(KeyStream, ClientFileStream);
+
+            "Private RSA Key File Name" := ClientFileName;
+            Modify;
+        end;
     end;
 
     procedure ExportPrivateRSAKeyFile(): Text
@@ -127,12 +130,15 @@ table 50046 "DocuSignSetupVRS"
         TempBLOBL: Codeunit "Temp Blob";
         FileMgtL: Codeunit "File Management";
         FilenameWithPath: Text;
-        InStreamL: InStream;
+        KeyStream: InStream;
+        BlobStream: OutStream;
     begin
         CALCFIELDS("Private RSA Key");
         IF "Private RSA Key".HASVALUE THEN BEGIN
-            "Private RSA Key".CreateInStream(InStreamL);
-            TempBLOBL.CreateInStream(InStreamL);
+            "Private RSA Key".CreateInStream(KeyStream);
+            TempBLOBL.CreateOutStream(BlobStream);
+            CopyStream(BlobStream, KeyStream);
+
             FilenameWithPath := FileMgtL.ServerTempFileName('pem');
             FileMgtL.BLOBExportToServerFile(TempBLOBL, FilenameWithPath);
         END;
