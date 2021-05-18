@@ -784,7 +784,7 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopesApiL: DotNet EnvelopesApi;
         ExceptionL: DotNet Exception;
         DocumentsL: DotNet EnvelopeDocumentsResult;
-        DocumentL: DotNet Document;
+        DocumentL: DotNet DocumentE;
         GetDocumentOptionsL: DotNet EnvelopesApi_GetDocumentOptions;
         DocStreamL: DotNet Stream;
         FileStreamL: DotNet FileStream;
