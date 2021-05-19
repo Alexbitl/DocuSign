@@ -24,12 +24,12 @@ codeunit 50020 "DocuSignManagementVRS"
         CantReopenSalesHeaderErrTxt: Label 'CAF signing via DocuSign is in porgress. You can''t reopen Sales Header %1.\You have to cancel CAF signing.';
         YouHaventEnoughPremessionToReopenSOTxt: Label 'You have not enough permission to reopen Sales order with DocuSign signing.';
         ApiClient: DotNet ApiClient;
-        Configuration: DotNet Configuration;
         YouHaventEnoughPremessionToViodDocuSignEnvelopeErrTxt: Label 'You have not enough permission to void DocuSign signing.';
         ConnectionIsntConfigErrTxt: Label '%1 connection isn''t configured.';
         ValidateSharePointConnectErrTxt: Label 'Cannot connect because the user name and password have not been specified, or because the connection was canceled.';
         SharePointLibraryWasntFoundErrTxt: Label 'SharePoint document library %1 wasn''t found.';
         CouldNotConnectErrTxt: Label 'Could not login to %1!\\The returned errormessage was:\%2';
+        NoPrivateKeyTxt: Label 'Please upload private key at DocuSign setup page';
         CantUnchekcCustUseDocuSignErrTxt: Label 'You can''t uncheck %1. There are DocuSign Envelopes in-progress.';
         YouCannotVoidEnvelopeWithStatusErrTxt: Label 'You can''t void DocuSign Envelope with Status %1.';
         DocuSignStatusShouldBeErrTxt: Label 'Docusign Status should be њЧ%1њШ';
@@ -58,6 +58,70 @@ codeunit 50020 "DocuSignManagementVRS"
         ErrorCountRecipientsTxt: Label 'The number of recipients %1 exceeds CC Recipients Limit %2 for this SO. Do you wish to continue?';
         ContinueTxt: Label 'Do you wish to continue?';
         EmptyString: Text[1];
+        DotUtils: Codeunit DocuSignDotNetUtils;
+
+    [TryFunction]
+    local procedure LoginApi(var Accountid: Text)
+    var
+        AuthenticationApi: DotNet AuthenticationApi;
+        LoginInformation: DotNet LoginInformation;
+        LoginAccount: DotNet LoginAccount;
+        LoginOptions: DotNet AuthenticationApi_LoginOptions;
+        ExceptionL: DotNet Exception;
+        AuthHeader: Text;
+    begin
+        DocuSignSetup.GET;
+
+        AuthenticationApi := AuthenticationApi.AuthenticationApi(ApiClient);
+        LoginInformation := AuthenticationApi.Login(LoginOptions.LoginOptions);
+
+        FOREACH LoginAccount IN LoginInformation.LoginAccounts DO BEGIN
+            IF LoginAccount.IsDefault = 'true' THEN BEGIN
+                Accountid := LoginAccount.AccountId;
+                BREAK;
+            END;
+        END;
+
+        IF Accountid = '' THEN BEGIN
+            LoginAccount := LoginInformation.LoginAccounts.Item(0);
+            Accountid := LoginAccount.AccountId;
+        END;
+    end;
+
+    local procedure Authorize(var AccountId: Text)
+    var
+        Scopes: DotNet List_Of_T;
+        LoginException: DotNet Exception;
+        PrivateKey: DotNet ByteArray;
+        Configuration: DotNet Configuration;
+        SignApi: DotNet SignApi;
+    begin
+        DocuSignSetup.GET;
+        // ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
+        ApiClient := SignApi.BuildClient(DocuSignSetup."Base URL");
+
+        DotUtils.ListString(Scopes);
+        Scopes.Add('signature');
+        Scopes.Add('impersonation');
+
+        if not DocuSignSetup.ExportPrivateRSAKeyBytes(PrivateKey) then begin
+            Error(NoPrivateKeyTxt);
+        end;
+
+        ApiClient.RequestJWTUserToken(
+            DocuSignSetup."Integrator Key",
+            DocuSignSetup."API Username",
+            DocuSignSetup."OAuth Base Path",
+            PrivateKey,
+            1,
+            Scopes
+        );
+
+        IF NOT LoginApi(AccountId) THEN BEGIN
+            LoginException := GetLastErrorObject();
+            Error(CouldNotConnectErrTxt, 'DocuSign', LoginException.Message);
+        END;
+    end;
 
     procedure RequestSign(SignerContactP: Record Contact; RecipientsSetupP: Record DocuSignEnvelopeRecipientVRS; DocumentPathP: Text; FileNameP: Text; var SalesHeaderP: Record "Sales Header"): Text
     var
@@ -73,12 +137,11 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopesApiL: DotNet EnvelopesApi;
         EnvelopeSummaryL: DotNet EnvelopeSummary;
         CreateEnvelopeOptionsL: DotNet EnvelopesApi_CreateEnvelopeOptions;
-        SystemIOFileL: DotNet File0;
+        SystemIOFileL: DotNet File;
         ByteArrayL: DotNet Array;
         SystemConvertL: DotNet Convert;
-        ExceptionL: DotNet Exception;
         EmptyStringL: DotNet String;
-        AccountIDL: Text;
+        AccountId: Text;
         EnterTextL: Text;
         BodyTextL: Text;
         EnterCharacterL: Char;
@@ -87,19 +150,7 @@ codeunit 50020 "DocuSignManagementVRS"
         RoutingOrderL: Integer;
         FileMgtL: Codeunit "File Management";
     begin
-        DocuSignSetup.GET;
-        ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
-
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, EmptyStringL);
-        ListL.Add('signature');
-        ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, ListL);
-
-        IF NOT LoginApi(AccountIDL) THEN BEGIN
-            ExceptionL := GETLASTERROROBJECT;
-            ERROR(CouldNotConnectErrTxt, 'DocuSign', ExceptionL.Message);
-        END;
+        Authorize(AccountId);
 
         CharL := 8212;
         CompanyInfoL.GET;
@@ -147,22 +198,19 @@ codeunit 50020 "DocuSignManagementVRS"
         DocumentL.Name := FileNameP;
         DocumentL.DocumentId := '1';
 
-        CreateInstanceOfGenericType(ListL, DocumentL);
+        DotUtils.ListDocument(ListL);
+        ListL.Add(DocumentL);
         EnvelopeDefinitionL.Documents := ListL;
-        EnvelopeDefinitionL.Documents.Add(DocumentL);
 
         CFOEmployeeL.GET(CompanyInfoL."CFO No.");
         EnvelopeDefinitionL.Recipients := RecipientsL.Recipients(GetDotNetType(EmptyString));
 
-        ListL := ListL.List(2);
-        CreateInstanceOfGenericType(ListL, SignerL);
-        EnvelopeDefinitionL.Recipients.Signers := ListL;
-
+        DotUtils.ListSigner(ListL);
         CreateSigner(CFOEmployeeL."E-Mail", CFOEmployeeL.FullName, 1, 1, 400, 680, SignerL);
-        EnvelopeDefinitionL.Recipients.Signers.Add(SignerL);
-
+        ListL.Add(SignerL);
         CreateSigner(SignerContactP."E-Mail", SignerContactP.Name, 2, 2, 100, 680, SignerL);
-        EnvelopeDefinitionL.Recipients.Signers.Add(SignerL);
+        ListL.Add(SignerL);
+        EnvelopeDefinitionL.Recipients.Signers := ListL;
 
         CLEAR(ListL);
         //RecipientsSetupP.SETRANGE("Order No.",RecipientsSetupP."Order No.");
@@ -173,8 +221,7 @@ codeunit 50020 "DocuSignManagementVRS"
             //     IF NOT CONFIRM(STRSUBSTNO(ErrorCountRecipientsTxt, RecipientsSetupP.COUNT, SalesHeaderP."CC Recipients Limit")) THEN
             //         ERROR('');
 
-            ListL := ListL.List(RecipientsSetupP.COUNT);
-            CreateInstanceOfGenericType(ListL, CarbonCopyL);
+            DotUtils.ListCarbonCopy(ListL);
             EnvelopeDefinitionL.Recipients.CarbonCopies := ListL;
             RecipientIDL := 2;
             RoutingOrderL := 2;
@@ -190,8 +237,8 @@ codeunit 50020 "DocuSignManagementVRS"
         END;
 
         EnvelopeDefinitionL.Status := 'sent';
-        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient.Configuration);
-        EnvelopeSummaryL := EnvelopesApiL.CreateEnvelope(AccountIDL, EnvelopeDefinitionL, CreateEnvelopeOptionsL.CreateEnvelopeOptions);
+        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
+        EnvelopeSummaryL := EnvelopesApiL.CreateEnvelope(AccountId, EnvelopeDefinitionL, CreateEnvelopeOptionsL.CreateEnvelopeOptions);
 
         EXIT(EnvelopeSummaryL.EnvelopeId);
     end;
@@ -207,7 +254,6 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopesApiL: DotNet EnvelopesApi;
         EnvelopeL: DotNet Envelope;
         EnvelopeOptionsL: DotNet EnvelopesApi_GetEnvelopeOptions;
-        ExceptionL: DotNet Exception;
         EnvelopeUpdateSummaryL: DotNet EnvelopeUpdateSummary;
         EnvelopeDefinitionL: DotNet EnvelopeDefinition;
         UpdateOptionsL: DotNet EnvelopesApi_UpdateOptions;
@@ -218,7 +264,7 @@ codeunit 50020 "DocuSignManagementVRS"
         ListL: DotNet List_Of_T;
         SignerL: DotNet Signer;
         EmptyStringL: DotNet String;
-        AccountIDL: Text;
+        AccountId: Text;
         ErrorDetailsL: Text;
         BodyTextL: Text;
         EnterTextL: Text;
@@ -268,32 +314,22 @@ codeunit 50020 "DocuSignManagementVRS"
         //     IF NOT TempEmailItemL.SendViaOutlook THEN EXIT;
         // END;
 
-        DocuSignSetup.GET;
-        ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, EmptyStringL);
-        ListL.Add('signature');
-        ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, ListL);
+        Authorize(AccountId);
 
-        IF NOT LoginApi(AccountIDL) THEN BEGIN
-            ExceptionL := GETLASTERROROBJECT;
-            ERROR(CouldNotConnectErrTxt, 'DocuSign', ExceptionL.Message);
-        END;
-
-        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient.Configuration);
-        EnvelopeL := EnvelopesApiL.GetEnvelope(AccountIDL, DocuSignEnvelopeL.ID, EnvelopeOptionsL);
+        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
+        EnvelopeL := EnvelopesApiL.GetEnvelope(AccountId, DocuSignEnvelopeL.ID, EnvelopeOptionsL);
         RecipientsL := RecipientsL.Recipients(GetDotNetType(EmptyString));
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, SignerL);
-        CreateSigner(CustSignerL."E-Mail", CustSignerL.Name, 2, 2, 100, 680, SignerL);
+
+        DotUtils.ListSigner(ListL);
         RecipientsL.Signers := ListL;
+        CreateSigner(CustSignerL."E-Mail", CustSignerL.Name, 2, 2, 100, 680, SignerL);
         RecipientsL.Signers.Add(SignerL);
+
         UpdateRecipientsOptionsL := UpdateRecipientsOptionsL.UpdateRecipientsOptions;
         UpdateRecipientsOptionsL.resendEnvelope('true');
-        RecipientsUpdateSummaryL := EnvelopesApiL.UpdateRecipients(AccountIDL, DocuSignEnvelopeL.ID, RecipientsL, UpdateRecipientsOptionsL);
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, RecipientsUpdateResultsL);
+        RecipientsUpdateSummaryL := EnvelopesApiL.UpdateRecipients(AccountId, DocuSignEnvelopeL.ID, RecipientsL, UpdateRecipientsOptionsL);
+
+        // DotUtils.ListRecipientUpdateResponse(ListL);
         ListL := RecipientsUpdateSummaryL.RecipientUpdateResults;
         IF ListL.Count > 0 THEN BEGIN
             RecipientsUpdateResultsL := ListL.Item(0);
@@ -316,7 +352,7 @@ codeunit 50020 "DocuSignManagementVRS"
         SignerP.RoutingOrder := FORMAT(RoutingOrderP);
 
         SignerP.Tabs := TabsL.Tabs(GetDotNetType(EmptyString));
-        CreateInstanceOfGenericType(ListL, SignHereL);
+        DotUtils.ListSignHere(ListL);
         SignerP.Tabs.SignHereTabs := ListL;
         SignHereL := SignHereL.SignHere(GetDotNetType(EmptyString));
         SignHereL.DocumentId := '1';
@@ -326,7 +362,7 @@ codeunit 50020 "DocuSignManagementVRS"
         SignHereL.YPosition := FORMAT(SignYPositionP);
         SignerP.Tabs.SignHereTabs.Add(SignHereL);
 
-        CreateInstanceOfGenericType(ListL, TextTabL);
+        DotUtils.ListModelText(ListL);
         SignerP.Tabs.TextTabs := ListL;
         TextTabL := TextTabL.Text(GetDotNetType(EmptyString));
         TextTabL.TabLabel := 'Name';
@@ -338,7 +374,7 @@ codeunit 50020 "DocuSignManagementVRS"
         TextTabL.YPosition := FORMAT(SignYPositionP + 65);
         SignerP.Tabs.TextTabs.Add(TextTabL);
 
-        CreateInstanceOfGenericType(ListL, DateSignedTabL);
+        DotUtils.ListDateSigned(ListL);
         SignerP.Tabs.DateSignedTabs := ListL;
         DateSignedTabL := DateSignedTabL.DateSigned(GetDotNetType(EmptyString));
         DateSignedTabL.TabLabel := 'Signing Date';
@@ -367,42 +403,25 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopeL: DotNet Envelope;
         EnvelopeOptionsL: DotNet EnvelopesApi_GetEnvelopeOptions;
         ListRecipientsOptionsL: DotNet EnvelopesApi_ListRecipientsOptions;
-        ExceptionL: DotNet Exception;
         RecipientsL: DotNet Recipients;
         SignerL: DotNet Signer;
         Scopes: DotNet List_Of_T;
         ListL: DotNet List_Of_T;
-        SystemIOFileL: DotNet File0;
+        SystemIOFileL: DotNet File;
         ByteArrayL: DotNet Array;
-        AccountIDL: Text;
+        AccountId: Text;
         MeraStatusL: Text;
         SignerStatusL: Text;
         EnvelopeStatusL: Text;
         FileMgtL: Codeunit "File Management";
     begin
-        DocuSignSetup.GET;
-        ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
+        Authorize(AccountId);
 
-        CreateStringList(Scopes);
-        Scopes.Add('signature');
-
-        ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username",
-          DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, Scopes);
-
-        IF NOT LoginApi(AccountIDL) THEN BEGIN
-            ExceptionL := GETLASTERROROBJECT;
-            ERROR(CouldNotConnectErrTxt, 'DocuSign', ExceptionL.Message);
-        END;
-
-        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient.Configuration);
-        EnvelopeL := EnvelopesApiL.GetEnvelope(AccountIDL, EnvelopeP.ID, EnvelopeOptionsL);
+        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
+        EnvelopeL := EnvelopesApiL.GetEnvelope(AccountId, EnvelopeP.ID, EnvelopeOptionsL);
         EnvelopeStatusL := EnvelopeL.Status;
 
-        RecipientsL := EnvelopesApiL.ListRecipients(AccountIDL, EnvelopeP.ID, ListRecipientsOptionsL.ListRecipientsOptions);
-
-        ListL := ListL.List(2);
-        CreateInstanceOfGenericType(ListL, SignerL);
+        RecipientsL := EnvelopesApiL.ListRecipients(AccountId, EnvelopeP.ID, ListRecipientsOptionsL.ListRecipientsOptions);
 
         ListL := RecipientsL.Signers;
         SignerL := ListL.Item(0);
@@ -434,11 +453,10 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopesApiL: DotNet EnvelopesApi;
         EnvelopeL: DotNet Envelope;
         EnvelopeOptionsL: DotNet EnvelopesApi_GetEnvelopeOptions;
-        ExceptionL: DotNet Exception;
         EnvelopeUpdateSummaryL: DotNet EnvelopeUpdateSummary;
         UpdateOptionsL: DotNet EnvelopesApi_UpdateOptions;
         Scopes: DotNet List_Of_T;
-        AccountIDL: Text;
+        AccountId: Text;
     begin
         UserSetupL.GET(USERID);
         IF NOT UserSetupL."Allow Void Docusign Envelope" THEN
@@ -447,26 +465,14 @@ codeunit 50020 "DocuSignManagementVRS"
         IF EnvelopeP.Status > EnvelopeP.Status::"Signed by Both Parties" THEN
             ERROR(YouCannotVoidEnvelopeWithStatusErrTxt, EnvelopeP.Status);
 
-        DocuSignSetup.GET;
-        ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
+        Authorize(AccountId);
 
-        CreateStringList(Scopes);
-        Scopes.Add('signature');
-
-        ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, Scopes);
-
-        IF NOT LoginApi(AccountIDL) THEN BEGIN
-            ExceptionL := GETLASTERROROBJECT;
-            ERROR(CouldNotConnectErrTxt, 'DocuSign', ExceptionL.Message);
-        END;
-
-        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient.Configuration);
-        EnvelopeL := EnvelopesApiL.GetEnvelope(AccountIDL, EnvelopeP.ID, EnvelopeOptionsL);
+        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
+        EnvelopeL := EnvelopesApiL.GetEnvelope(AccountId, EnvelopeP.ID, EnvelopeOptionsL);
         EnvelopeL.Status('voided');
         EnvelopeL.VoidedReason('Voided by Mera');
         EnvelopeL.PurgeState('');
-        EnvelopeUpdateSummaryL := EnvelopesApiL.Update(AccountIDL, EnvelopeP.ID, EnvelopeL, UpdateOptionsL);
+        EnvelopeUpdateSummaryL := EnvelopesApiL.Update(AccountId, EnvelopeP.ID, EnvelopeL, UpdateOptionsL);
 
         EnvelopeP.VALIDATE(Status, EnvelopeP.Status::Voided);
         EnvelopeP.MODIFY(TRUE);
@@ -508,111 +514,17 @@ codeunit 50020 "DocuSignManagementVRS"
 
     end;
 
-    [TryFunction]
-    local procedure LoginApi(var Accountid: Text)
-    var
-        AuthenticationApi: DotNet AuthenticationApi;
-        LoginInformation: DotNet LoginInformation;
-        LoginAccount: DotNet LoginAccount;
-        LoginOptions: DotNet AuthenticationApi_LoginOptions;
-        ExceptionL: DotNet Exception;
-        AuthHeader: Text;
-    begin
-        DocuSignSetup.GET;
-
-        AuthenticationApi := AuthenticationApi.AuthenticationApi(ApiClient.Configuration);
-        LoginInformation := AuthenticationApi.Login(LoginOptions.LoginOptions);
-
-        FOREACH LoginAccount IN LoginInformation.LoginAccounts DO BEGIN
-            IF LoginAccount.IsDefault = 'true' THEN BEGIN
-                Accountid := LoginAccount.AccountId;
-                BREAK;
-            END;
-        END;
-
-        IF Accountid = '' THEN BEGIN
-            LoginAccount := LoginInformation.LoginAccounts.Item(0);
-            Accountid := LoginAccount.AccountId;
-        END;
-    end;
-
-    local procedure CreateStringList(var Result: DotNet List_Of_T)
-    var
-        EmptyString: DotNet String;
-    begin
-        EmptyString := '';
-        CreateGenericList(Result, EmptyString);
-    end;
-
-    local procedure CreateGenericList(var Result: DotNet List_Of_T; T: DotNet Object)
-    begin
-        Result := Result.List(1);
-        CreateInstanceOfGenericType(Result, T);
-    end;
-
-    local procedure CreateInstanceOfGenericType(var Object: DotNet Object; T: DotNet Object)
-    var
-        DotNetType: DotNet Type;
-        GenericType: DotNet Type;
-        DotNetArray: DotNet Array;
-        Activator: DotNet Activator;
-    begin
-        DotNetType := GetDotNetType(T);
-        if DotNetType.FullName = 'System.Object' then
-            Error('Generic type is undefined!');
-        DotNetArray := DotNetArray.CreateInstance(GETDOTNETTYPE(DotNetType), 1);
-        DotNetArray.SetValue(GETDOTNETTYPE(T), 0);
-
-        GenericType := GETDOTNETTYPE(Object);
-        GenericType := GenericType.GetGenericTypeDefinition();
-        DotNetType := GenericType.MakeGenericType(DotNetArray);
-
-        Object := Activator.CreateInstance(DotNetType);
-    end;
-    //  LOCAL PROCEDURE CreateInstanceOfGenericType@1000000008(VAR Object@1000000001 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Object";T@1000000000 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Object");
-    //     VAR
-    //       DotNetType@1000000005 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Type";
-    //       GenericType@1000000007 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Type";
-    //       DotNetArray@1000000004 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Array";
-    //       Activator@1000000002 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Activator";
-    //     BEGIN
-    //       DotNetArray := DotNetArray.CreateInstance(GETDOTNETTYPE(DotNetType),1);
-    //       DotNetArray.SetValue(GETDOTNETTYPE(T),0);
-
-    //       GenericType := GETDOTNETTYPE(Object);
-    //       DotNetType := GenericType.MakeGenericType(DotNetArray);
-    //       Object := Activator.CreateInstance(DotNetType);
-    //     END;
-
-
     procedure TestDocuSignConnection()
     var
-        ExceptionL: DotNet Exception;
+        Encoding: DotNet Encoding;
         Scopes: DotNet List_Of_T;
-        AccountIDL: Text;
+        AccountId: Text;
     begin
         //#kay
         IF NOT IsDocuSignConfigured THEN
             ERROR(ConnectionIsntConfigErrTxt, 'DocuSign');
 
-        DocuSignSetup.GET;
-        ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
-
-        CreateStringList(Scopes);
-        Scopes.Add('signature');
-
-        ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key",
-          DocuSignSetup."API Username",
-          DocuSignSetup."OAuth Base Path",
-          DocuSignSetup.ExportPrivateRSAKeyFile,
-          1,
-          Scopes);
-
-        IF NOT LoginApi(AccountIDL) THEN BEGIN
-            ExceptionL := GETLASTERROROBJECT;
-            ERROR(CouldNotConnectErrTxt, 'DocuSign', ExceptionL.Message);
-        END;
+        Authorize(AccountId);
     end;
 
     local procedure IsDocuSignConfigured(): Boolean
@@ -782,9 +694,8 @@ codeunit 50020 "DocuSignManagementVRS"
     var
         SalesHeaderL: Record "Sales Header";
         EnvelopesApiL: DotNet EnvelopesApi;
-        ExceptionL: DotNet Exception;
         DocumentsL: DotNet EnvelopeDocumentsResult;
-        DocumentL: DotNet DocumentE;
+        DocumentL: DotNet Document;
         GetDocumentOptionsL: DotNet EnvelopesApi_GetDocumentOptions;
         DocStreamL: DotNet Stream;
         FileStreamL: DotNet FileStream;
@@ -792,22 +703,11 @@ codeunit 50020 "DocuSignManagementVRS"
         SeekOriginL: DotNet SeekOrigin;
         ListL: DotNet List_Of_T;
         EmptyStringL: DotNet String;
-        AccountIDL: Text;
+        AccountId: Text;
         CAFDocumentFileNameL: Text;
         FileMgtL: Codeunit "File Management";
     begin
-        DocuSignSetup.GET;
-        ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
-        ListL := ListL.List(1);
-        CreateInstanceOfGenericType(ListL, EmptyStringL);
-        ListL.Add('signature');
-        ApiClient.ConfigureJwtAuthorizationFlow(
-          DocuSignSetup."Integrator Key", DocuSignSetup."API Username", DocuSignSetup."OAuth Base Path", DocuSignSetup.ExportPrivateRSAKeyFile, 1, ListL);
-
-        IF NOT LoginApi(AccountIDL) THEN BEGIN
-            ExceptionL := GETLASTERROROBJECT;
-            ERROR(CouldNotConnectErrTxt, 'DocuSign', ExceptionL.Message);
-        END;
+        Authorize(AccountId);
 
         SalesHeaderL.SETRANGE("No.", EnvelopeP."Order No.");
         SalesHeaderL.FINDFIRST;
@@ -819,9 +719,9 @@ codeunit 50020 "DocuSignManagementVRS"
           GetMonthName(SalesHeaderL."Posting Date") + '-' + FORMAT(SalesHeaderL."Posting Date", 0, '<Year>') + '_' +
           FORMAT(TIME, 0, '<Hours24,2><Filler Character,0><Minutes,2>')) + '.pdf';
 
-        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient.Configuration);
+        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
         DocStreamL := EnvelopesApiL.GetDocument(
-          AccountIDL, EnvelopeP.ID, '1', GetDocumentOptionsL.GetDocumentOptions);
+          AccountId, EnvelopeP.ID, '1', GetDocumentOptionsL.GetDocumentOptions);
         FileStreamL := FileStreamL.FileStream(CAFDocumentFileNameL, FileModeL.Create);
         DocStreamL.Seek(0, SeekOriginL.Current);
         DocStreamL.CopyTo(FileStreamL);
@@ -1365,11 +1265,15 @@ codeunit 50020 "DocuSignManagementVRS"
 }
 dotnet
 {
+    assembly("MSign")
+    {
+        type("MSign.SignApi"; SignApi) { }
+    }
     assembly("DocuSign.eSign")
     {
-        Version = '3.1.3.0';
+        Version = '5.2.0.0';
         Culture = 'neutral';
-        PublicKeyToken = 'null';
+        PublicKeyToken = '7fca6fcbbc219ede';
 
         type("DocuSign.eSign.Client.ApiClient"; "ApiClient") { }
         type("DocuSign.eSign.Client.Configuration"; "Configuration") { }
@@ -1408,19 +1312,7 @@ dotnet
         PublicKeyToken = 'b77a5c561934e089';
 
         type("System.Collections.Generic.List`1"; "List_Of_T") { }
-        type("System.IO.File"; "File0") { }
-        /*type("System.Array"; "Array") { }
-        type("System.Convert"; "Convert") { }
-        type("System.Exception"; "Exception") { }
-        type("System.String"; "String0") { }
-        type("System.Object"; "Object") { }
-        type("System.Type"; "Type") { }
-        type("System.Activator"; "Activator") { }
-        type("System.Security.SecureString"; "SecureString") { }
-        type("System.IO.Stream"; "Stream") { }
-        type("System.IO.FileStream"; "FileStream") { }
-        type("System.IO.FileMode"; "FileMode") { }
-        type("System.IO.SeekOrigin"; "SeekOrigin") { }*/
+        type("System.Byte[]"; "ByteArray") { }
     }
 }
 

@@ -145,5 +145,33 @@ table 50046 "DocuSignSetupVRS"
 
         EXIT(FilenameWithPath);
     end;
+
+    procedure ExportPrivateRSAKeyBytes(var Result: DotNet ByteArray): Boolean
+    var
+        TempBlob: Codeunit "Temp Blob";
+        BlobStream: OutStream;
+        FieldStream: InStream;
+        FileMgt: Codeunit "File Management";
+        FilenameWithPath: Text;
+
+        DotFile: DotNet File;
+    begin
+        CalcFields("Private RSA Key");
+
+        if "Private RSA Key".HasValue then begin
+            "Private RSA Key".CreateInStream(FieldStream);
+            TempBlob.CreateOutStream(BlobStream);
+            CopyStream(BlobStream, FieldStream);
+
+            FilenameWithPath := FileMgt.ServerTempFileName('pem');
+            FileMgt.BLOBExportToServerFile(TempBlob, FilenameWithPath);
+
+            Result := DotFile.ReadAllBytes(FilenameWithPath);
+
+            exit(true);
+        end;
+
+        exit(false);
+    end;
 }
 
