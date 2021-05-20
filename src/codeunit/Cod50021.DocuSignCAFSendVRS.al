@@ -86,11 +86,11 @@ codeunit 50021 "DocuSignCAFSendVRS"
     var
         FileManagementL: Codeunit "File Management";
         ServerAttachmentFilePathL: Text;
-        ReportCAFL: Report CustomerAcceptanceVRS;
+        ReportCAFL: Report "Order Confirmation";  // change to this report just for test. Replace later
     begin
         ServerAttachmentFilePathL := FileManagementL.ServerTempFileName('pdf');
 
-        ReportCAFL.SetInitParameters(CIFP, ProjectCompleteP, FooterTextP);
+        //ReportCAFL.SetInitParameters(CIFP, ProjectCompleteP, FooterTextP);
         ReportCAFL.SETTABLEVIEW(SalesHeaderP);
         ReportCAFL.SAVEASPDF(ServerAttachmentFilePathL);
 
@@ -120,23 +120,23 @@ codeunit 50021 "DocuSignCAFSendVRS"
         FooterTextL: Text;
     begin
         SalesHeaderP.SETRECFILTER;
-        IF SetCAFReportParameters(CIFL, ProjectCompleteL, FooterTextL) THEN BEGIN
-            AttachmentFilePathL := SaveCAFReportAsPdf(SalesHeaderP, CIFL, ProjectCompleteL, FooterTextL);
-            EXIT(DocuSignMgtL.RequestSign(
-              SignerP,
-              RecipientsSetupP,
-              AttachmentFilePathL,
-              DocuSignMgtL.ReplaceBadCharacters(STRSUBSTNO(
-                'CAF-S_%1_%2_%3_%4_%5.pdf',
-                SalesHeaderP."Sell-to Customer Name",
-                SalesHeaderP."External Document No.",
-                SalesHeaderP."No.",
-                DocuSignMgtL.GetMonthName(SalesHeaderP."Posting Date") + '-' +
-                FORMAT(SalesHeaderP."Posting Date", 0, '<Year>'),
-                FORMAT(TIME, 0, '<Hours24,2><Filler Character,0><Minutes,2>'))),
-              SalesHeaderP));
-        END ELSE
-            EXIT('');
+        //IF SetCAFReportParameters(CIFL, ProjectCompleteL, FooterTextL) THEN BEGIN
+        AttachmentFilePathL := SaveCAFReportAsPdf(SalesHeaderP, CIFL, ProjectCompleteL, FooterTextL);
+        EXIT(DocuSignMgtL.RequestSign(
+          SignerP,
+          RecipientsSetupP,
+          AttachmentFilePathL,
+          DocuSignMgtL.ReplaceBadCharacters(STRSUBSTNO(
+            'CAF-S_%1_%2_%3_%4_%5.pdf',
+            SalesHeaderP."Sell-to Customer Name",
+            SalesHeaderP."External Document No.",
+            SalesHeaderP."No.",
+            DocuSignMgtL.GetMonthName(SalesHeaderP."Posting Date") + '-' +
+            FORMAT(SalesHeaderP."Posting Date", 0, '<Year>'),
+            FORMAT(TIME, 0, '<Hours24,2><Filler Character,0><Minutes,2>'))),
+          SalesHeaderP));
+        // END ELSE
+        //     EXIT('');
     end;
 
     local procedure CreateDocuSignEnvelope(EnvelopIDP: Text; SalesHeaderP: Record "Sales Header")
@@ -152,14 +152,10 @@ codeunit 50021 "DocuSignCAFSendVRS"
 
         CustomerL.GET(SalesHeaderP."Sell-to Customer No.");
 
-        // MC-391-ZhV 2018-11-15 >>
-        //SignerL.GET(CustomerL."Signer No.");
-
         IF SalesHeaderP."CAF Signer No." = '' THEN
             SignerL.GET(CustomerL."Signer No.")
         ELSE
             SignerL.GET(SalesHeaderP."CAF Signer No.");
-        // MC-391-ZhV 2018-11-15 <<
 
         EnvelopL.INIT;
         EnvelopL.ID := EnvelopIDP;
@@ -185,14 +181,14 @@ codeunit 50021 "DocuSignCAFSendVRS"
         ServerFilePathNewL: Text;
     begin
         SalesHeaderP.SETRECFILTER;
-        IF SetCAFReportParameters(CIFL, ProjectCompleteL, FooterTextL) THEN BEGIN
-            ServerFilePathL := SaveCAFReportAsPdf(SalesHeaderP, CIFL, ProjectCompleteL, FooterTextL);
-            ServerFilePathNewL := FileManagementL.GetDirectoryName(ServerFilePathL) + '\' + FileNameP;
-            FileManagementL.CopyServerFile(ServerFilePathL, ServerFilePathNewL, TRUE);
-            FileManagementL.DeleteServerFile(ServerFilePathL);
-            EXIT(ServerFilePathNewL);
-        END ELSE
-            EXIT('');
+        //IF SetCAFReportParameters(CIFL, ProjectCompleteL, FooterTextL) THEN BEGIN
+        ServerFilePathL := SaveCAFReportAsPdf(SalesHeaderP, CIFL, ProjectCompleteL, FooterTextL);
+        ServerFilePathNewL := FileManagementL.GetDirectoryName(ServerFilePathL) + '\' + FileNameP;
+        FileManagementL.CopyServerFile(ServerFilePathL, ServerFilePathNewL, TRUE);
+        FileManagementL.DeleteServerFile(ServerFilePathL);
+        EXIT(ServerFilePathNewL);
+        // END ELSE
+        //     EXIT('');
     end;
 }
 

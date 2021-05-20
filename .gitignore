@@ -2,4 +2,5 @@
 *.alpackages
 *.netpackges
 .vscode/.alcache/*
+.vscode/.altemplates/*
 .vscode/rad.json

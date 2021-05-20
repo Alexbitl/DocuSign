@@ -6,7 +6,6 @@ page 50077 "DocuSignSetupVRS"
 {
     Caption = 'DocuSign Setup';
     PageType = Card;
-    Permissions = TableData "Service Password" = rimd;
     SaveValues = true;
     ShowFilter = false;
     SourceTable = DocuSignSetupVRS;
@@ -22,18 +21,23 @@ page 50077 "DocuSignSetupVRS"
                 Caption = 'General';
                 field("Integrator Key"; "Integrator Key")
                 {
+                    ApplicationArea = All;
                 }
                 field("API Username"; "API Username")
                 {
+                    ApplicationArea = All;
                 }
                 field("Base URL"; "Base URL")
                 {
+                    ApplicationArea = All;
                 }
                 field("OAuth Base Path"; "OAuth Base Path")
                 {
+                    ApplicationArea = All;
                 }
                 field("Private RSA Key File Name"; "Private RSA Key File Name")
                 {
+                    ApplicationArea = All;
                     Caption = 'Private RSA Key File';
                     //Editable = false;
 
@@ -41,49 +45,6 @@ page 50077 "DocuSignSetupVRS"
                     begin
                         ImportPrivateRSAKeyFile;
                     end;
-                }
-            }
-            group(SharePoint)
-            {
-                Caption = 'SharePoint';
-                field("SharePoint User Name"; "SharePoint User Name")
-                {
-                }
-                field(SharePointPasswordTemp; SharePointPasswordTemp)
-                {
-                    Caption = 'Password';
-                    ExtendedDatatype = Masked;
-
-                    trigger OnValidate()
-                    begin
-                        SetSharePointPassword(SharePointPasswordTemp);
-                        //COMMIT;
-                        //CurrPage.UPDATE(TRUE);
-                    end;
-                }
-                field("SharePoint URL"; "SharePoint URL")
-                {
-                    ToolTip = '';
-                }
-                field("SharePoint Library Name"; "SharePoint Library Name")
-                {
-                    ToolTip = '';
-                }
-                field("SharePoint Start Folder"; "SharePoint Start Folder")
-                {
-                    ToolTip = '';
-                }
-            }
-            group("Shared Documents")
-            {
-                Caption = 'Shared Documents';
-                field("SharePoint Document Repository"; "SharePoint Document Repository")
-                {
-                    Caption = 'Document Repository';
-                }
-                field("SharePoint Document Folder"; "SharePoint Document Folder")
-                {
-                    Caption = 'Document Folder';
                 }
             }
         }

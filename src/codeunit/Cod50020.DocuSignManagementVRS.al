@@ -695,7 +695,7 @@ codeunit 50020 "DocuSignManagementVRS"
         SalesHeaderL: Record "Sales Header";
         EnvelopesApiL: DotNet EnvelopesApi;
         DocumentsL: DotNet EnvelopeDocumentsResult;
-        DocumentL: DotNet Document;
+        DocumentL: DotNet DocumentE;
         GetDocumentOptionsL: DotNet EnvelopesApi_GetDocumentOptions;
         DocStreamL: DotNet Stream;
         FileStreamL: DotNet FileStream;
