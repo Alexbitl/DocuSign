@@ -10,6 +10,7 @@ page 50078 "DocuSignEnvelopeRecipientsVRS"
     PageType = ListPart;
     SourceTable = DocuSignEnvelopeRecipientVRS;
     UsageCategory = Lists;
+    ApplicationArea = All;
 
     layout
     {

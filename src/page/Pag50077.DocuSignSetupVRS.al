@@ -11,6 +11,7 @@ page 50077 "DocuSignSetupVRS"
     SourceTable = DocuSignSetupVRS;
     UsageCategory = Lists;
     DeleteAllowed = false;
+    ApplicationArea = All;
 
     layout
     {
@@ -61,6 +62,7 @@ page 50077 "DocuSignSetupVRS"
                 Promoted = true;
                 PromotedCategory = Process;
                 ToolTip = 'Test the configuration settings against the DocuSign.';
+                ApplicationArea = All;
 
                 trigger OnAction()
                 var

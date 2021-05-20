@@ -14,14 +14,17 @@ page 50079 "CustomerAcceptanceOptionsVRS"
             field(CIF; CIF)
             {
                 Caption = 'Customer Invoice Form';
+                ApplicationArea = All;
             }
             field(ProjectComplete; ProjectComplete)
             {
                 Caption = 'Project is complete';
+                ApplicationArea = All;
             }
             field(FooterText; FooterText)
             {
                 Caption = 'Footer Text';
+                ApplicationArea = All;
             }
         }
     }

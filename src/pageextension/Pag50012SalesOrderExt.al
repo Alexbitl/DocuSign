@@ -28,6 +28,7 @@ pageextension 50012 SalesOrderExt extends "Sales Order"
                     Promoted = true;
                     PromotedCategory = Category10;
                     ToolTip = 'Send to signing via DocuSign.';
+                    ApplicationArea = All;
 
                     trigger OnAction()
                     var
@@ -44,6 +45,7 @@ pageextension 50012 SalesOrderExt extends "Sales Order"
                     Image = Status;
                     Promoted = true;
                     PromotedCategory = Category10;
+                    ApplicationArea = All;
 
                     trigger OnAction()
                     var
@@ -67,6 +69,7 @@ pageextension 50012 SalesOrderExt extends "Sales Order"
                     Promoted = true;
                     PromotedCategory = Category10;
                     ToolTip = 'Resend to signing to Customer.';
+                    ApplicationArea = All;
 
                     trigger OnAction()
                     var
@@ -84,6 +87,7 @@ pageextension 50012 SalesOrderExt extends "Sales Order"
                     Promoted = true;
                     PromotedCategory = Category10;
                     Visible = ShowVoidCAFAction;
+                    ApplicationArea = All;
 
                     trigger OnAction()
                     var
@@ -107,6 +111,7 @@ pageextension 50012 SalesOrderExt extends "Sales Order"
                     Promoted = true;
                     PromotedCategory = Category10;
                     ToolTip = 'Set Default Recipients Setup.';
+                    ApplicationArea = All;
 
                     trigger OnAction()
                     var

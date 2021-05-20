@@ -20,16 +20,19 @@ pageextension 50002 "CustomerCardExtVRS" extends "Customer Card"
                     SubPageView = SORTING("Customer No.", "Order No.", "Recipient Type", "Recipient Code")
                                   WHERE("Order No." = FILTER(''));
                     UpdatePropagation = Both;
+                    ApplicationArea = All;
                 }
                 field("Use DocuSign"; Rec."Use DocuSign")
                 {
                     Importance = Promoted;
                     ToolTip = '';
+                    ApplicationArea = All;
                 }
                 field("Signer No."; Rec."Signer No.")
                 {
                     Editable = Rec."Use DocuSign";
                     ToolTip = '';
+                    ApplicationArea = All;
                 }
             }
         }

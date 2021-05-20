@@ -695,14 +695,11 @@ codeunit 50020 "DocuSignManagementVRS"
         SalesHeaderL: Record "Sales Header";
         EnvelopesApiL: DotNet EnvelopesApi;
         DocumentsL: DotNet EnvelopeDocumentsResult;
-        DocumentL: DotNet DocumentE;
         GetDocumentOptionsL: DotNet EnvelopesApi_GetDocumentOptions;
         DocStreamL: DotNet Stream;
         FileStreamL: DotNet FileStream;
         FileModeL: DotNet FileMode;
         SeekOriginL: DotNet SeekOrigin;
-        ListL: DotNet List_Of_T;
-        EmptyStringL: DotNet String;
         AccountId: Text;
         CAFDocumentFileNameL: Text;
         FileMgtL: Codeunit "File Management";
