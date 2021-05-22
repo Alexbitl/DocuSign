@@ -59,6 +59,7 @@ codeunit 50020 "DocuSignManagementVRS"
         ContinueTxt: Label 'Do you wish to continue?';
         EmptyString: Text[1];
         DotUtils: Codeunit DocuSignDotNetUtils;
+        SignApi: DotNet SignApi;
 
     [TryFunction]
     local procedure LoginApi(var Accountid: Text)
@@ -94,7 +95,6 @@ codeunit 50020 "DocuSignManagementVRS"
         LoginException: DotNet Exception;
         PrivateKey: DotNet ByteArray;
         Configuration: DotNet Configuration;
-        SignApi: DotNet SignApi;
     begin
         DocuSignSetup.GET;
         // ApiClient := ApiClient.ApiClient(DocuSignSetup."Base URL" + '/restapi');
@@ -156,7 +156,7 @@ codeunit 50020 "DocuSignManagementVRS"
         CompanyInfoL.GET;
         CustomerL.GET(SalesHeaderP."Sell-to Customer No.");
         CFOEmployeeL.GET(CompanyInfoL."CFO No.");
-        EnvelopeDefinitionL := EnvelopeDefinitionL.EnvelopeDefinition('');
+        EnvelopeDefinitionL := SignApi.BuildEnvelopeDefinition();
         EnvelopeDefinitionL.EmailSubject :=
           STRSUBSTNO(
             SignatureRequestEMailSubjectTxt,
@@ -193,7 +193,7 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopeDefinitionL.EmailBlurb := BodyTextL;
 
         ByteArrayL := SystemIOFileL.ReadAllBytes(DocumentPathP);
-        DocumentL := DocumentL.Document(GetDotNetType(EmptyString));
+        DocumentL := SignApi.BuildDocument();
         DocumentL.DocumentBase64 := SystemConvertL.ToBase64String(ByteArrayL);
         DocumentL.Name := FileNameP;
         DocumentL.DocumentId := '1';
@@ -203,7 +203,7 @@ codeunit 50020 "DocuSignManagementVRS"
         EnvelopeDefinitionL.Documents := ListL;
 
         CFOEmployeeL.GET(CompanyInfoL."CFO No.");
-        EnvelopeDefinitionL.Recipients := RecipientsL.Recipients(GetDotNetType(EmptyString));
+        EnvelopeDefinitionL.Recipients := SignApi.BuildRecipients();
 
         DotUtils.ListSigner(ListL);
         CreateSigner(CFOEmployeeL."E-Mail", CFOEmployeeL.FullName, 1, 1, 400, 680, SignerL);
@@ -345,16 +345,16 @@ codeunit 50020 "DocuSignManagementVRS"
         TextTabL: DotNet TextE;
         DateSignedTabL: DotNet DateSigned;
     begin
-        SignerP := SignerP.Signer(GetDotNetType(EmptyString));
+        SignerP := SignApi.BuildSigner();
         SignerP.Email := RecipientEMailP;
         SignerP.Name := RecipientNameP;
         SignerP.RecipientId := FORMAT(RecipientIDP);
         SignerP.RoutingOrder := FORMAT(RoutingOrderP);
 
-        SignerP.Tabs := TabsL.Tabs(GetDotNetType(EmptyString));
+        SignerP.Tabs := SignApi.BuildTabs();
         DotUtils.ListSignHere(ListL);
         SignerP.Tabs.SignHereTabs := ListL;
-        SignHereL := SignHereL.SignHere(GetDotNetType(EmptyString));
+        SignHereL := SignApi.BuildSignHere();
         SignHereL.DocumentId := '1';
         SignHereL.PageNumber := '1';
         SignHereL.RecipientId := FORMAT(RecipientIDP);
@@ -364,7 +364,7 @@ codeunit 50020 "DocuSignManagementVRS"
 
         DotUtils.ListModelText(ListL);
         SignerP.Tabs.TextTabs := ListL;
-        TextTabL := TextTabL.Text(GetDotNetType(EmptyString));
+        TextTabL := SignApi.BuildModelText();
         TextTabL.TabLabel := 'Name';
         TextTabL.Value := RecipientNameP;
         TextTabL.DocumentId := '1';
@@ -376,7 +376,7 @@ codeunit 50020 "DocuSignManagementVRS"
 
         DotUtils.ListDateSigned(ListL);
         SignerP.Tabs.DateSignedTabs := ListL;
-        DateSignedTabL := DateSignedTabL.DateSigned(GetDotNetType(EmptyString));
+        DateSignedTabL := SignApi.BuildDateSigned();
         DateSignedTabL.TabLabel := 'Signing Date';
         DateSignedTabL.DocumentId := '1';
         DateSignedTabL.PageNumber := '1';
@@ -1265,6 +1265,7 @@ dotnet
     assembly("MSign")
     {
         type("MSign.SignApi"; SignApi) { }
+        type("MSign.TypeApi"; TypeApi) { }
     }
     assembly("DocuSign.eSign")
     {

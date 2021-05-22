@@ -2,55 +2,47 @@ codeunit 50023 "DocuSignDotNetUtils"
 {
     procedure ListString(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeString);
+        Result := TypeApi.ListString();
     end;
 
     procedure ListDocument(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeDocument);
+        Result := TypeApi.ListDocument();
     end;
 
     procedure ListSigner(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeSigner);
+        Result := TypeApi.ListSigner();
     end;
 
     procedure ListCarbonCopy(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeCarbonCopy);
+        Result := TypeApi.ListCarbonCopy();
     end;
 
     procedure ListRecipientUpdateResponse(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeRecipientUpdateResponse);
+        Result := TypeApi.ListRecipientUpdateResponse();
     end;
 
     procedure ListSignHere(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeSignHere);
+        Result := TypeApi.ListSignHere();
     end;
 
     procedure ListModelText(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeModelText);
+        Result := TypeApi.ListModelText();
     end;
 
     procedure ListDateSigned(var Result: DotNet List_Of_T)
     begin
-        InitTypes();
-        CreateGenericList(Result, TypeDateSigned);
+        Result := TypeApi.ListDateSigned();
     end;
 
     // ===============================================
 
-    local procedure CreateGenericList(var Result: DotNet List_Of_T; TypeParam: DotNet Type)
+    /*local procedure CreateGenericList(var Result: DotNet List_Of_T; TypeParam: DotNet Type)
     begin
         Result := Result.List(1);
         CreateInstanceOfGenericType(Result, TypeParam);
@@ -70,42 +62,8 @@ codeunit 50023 "DocuSignDotNetUtils"
         GenericType := GenericType.MakeGenericType(TypeParameters);
 
         Result := Activator.CreateInstance(GenericType);
-    end;
-
-    local procedure InitTypes()
-    var
-        TempType: DotNet Type;
-        TempList: DotNet List_Of_T;
-    begin
-        if Initialized then
-            exit;
-
-        TempList := TempList.List(1);
-        TypeGenericList := GetDotNetType(TempList);
-        TypeGenericList := TypeGenericList.GetGenericTypeDefinition();
-
-        TypeType := TempType.GetType('System.Type');
-        TypeString := TempType.GetType('System.String');
-        TypeDocument := TempType.GetType('DocuSign.eSign.Model.Document');
-        TypeSigner := TempType.GetType('DocuSign.eSign.Model.Signer');
-        TypeCarbonCopy := TempType.GetType('DocuSign.eSign.Model.CarbonCopy');
-        TypeRecipientUpdateResponse := TempType.GetType('DocuSign.eSign.Model.RecipientUpdateResponse');
-        TypeSignHere := TempType.GetType('DocuSign.eSign.Model.SignHere');
-        TypeModelText := TempType.GetType('DocuSign.eSign.Model.Text');
-        TypeDateSigned := TempType.GetType('DocuSign.eSign.Model.DateSigned');
-        Initialized := true;
-    end;
+    end;*/
 
     var
-        Initialized: Boolean;
-        TypeType: DotNet Type;
-        TypeGenericList: DotNet Type;
-        TypeString: DotNet Type;
-        TypeDocument: DotNet Type;
-        TypeSigner: DotNet Type;
-        TypeCarbonCopy: DotNet Type;
-        TypeRecipientUpdateResponse: DotNet Type;
-        TypeSignHere: DotNet Type;
-        TypeModelText: DotNet Type;
-        TypeDateSigned: DotNet Type;
+        TypeApi: DotNet TypeApi;
 }
