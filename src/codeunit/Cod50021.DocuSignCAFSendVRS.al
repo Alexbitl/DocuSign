@@ -31,7 +31,6 @@ codeunit 50021 "DocuSignCAFSendVRS"
         SalesHeaderL := SalesHeaderP;
         //SalesHeaderL.LOCKTABLE;
         SalesHeaderL.SETRECFILTER;
-        //SalesHeaderL.TESTFIELD(Status,SalesHeaderL.Status::Released);
         IF NOT (SalesHeaderL.Status IN [SalesHeaderL.Status::Released, SalesHeaderL.Status::"Pending Prepayment"]) THEN
             ERROR(
               CheckSalesDocStatusErrTxt,

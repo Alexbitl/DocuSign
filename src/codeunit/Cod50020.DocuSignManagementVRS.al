@@ -543,153 +543,6 @@ codeunit 50020 "DocuSignManagementVRS"
         EXIT(TRUE);
     end;
 
-    // procedure TestSharePointConnection()
-    // var
-    //     SharePointClientContextL: DotNet ClientContext;
-    //     SharePointClientL: DotNet SharePointOnlineCredentials;
-    //     PasswordL: DotNet SecureString;
-    //     ListL: DotNet List;
-    //     ExceptionL: DotNet Exception;
-    //     PassStringL: Text;
-    //     SharePointUrlL: Text;
-    //     IndexL: Integer;
-    // begin
-    //     IF NOT IsSharePointConfigured THEN
-    //         ERROR(ConnectionIsntConfigErrTxt, 'SharePoint');
-
-    //     DocuSignSetup.GET;
-    //     SharePointUrlL := DocuSignSetup."SharePoint URL";
-
-    //     IF COPYSTR(SharePointUrlL, STRLEN(SharePointUrlL), 1) IN ['/', '\'] THEN
-    //         SharePointUrlL := DELSTR(SharePointUrlL, STRLEN(SharePointUrlL), 1);
-
-    //     SharePointClientContextL := SharePointClientContextL.ClientContext(SharePointUrlL);
-
-    //     PassStringL := DocuSignSetup.GetSharePointPassword;
-    //     PasswordL := PasswordL.SecureString;
-    //     FOR IndexL := 1 TO STRLEN(PassStringL) DO
-    //         PasswordL.AppendChar(PassStringL[IndexL]);
-
-    //     SharePointClientContextL.Credentials := SharePointClientL.SharePointOnlineCredentials(DocuSignSetup."SharePoint User Name", PasswordL);
-
-    //     IF ISNULL(SharePointClientContextL.Credentials) THEN
-    //         ERROR(ValidateSharePointConnectErrTxt);
-
-    //     Web := SharePointClientContextL.Web;
-
-    //     ListL := Web.Lists.GetByTitle(DocuSignSetup."SharePoint Library Name");
-    //     IF ISNULL(ListL) THEN
-    //         ERROR(SharePointLibraryWasntFoundErrTxt, DocuSignSetup."SharePoint Library Name");
-    //     IF NOT CheckSharePointConnection THEN BEGIN
-    //         ExceptionL := GETLASTERROROBJECT;
-    //         ERROR(CouldNotConnectErrTxt, 'SharePoint', ExceptionL.Message);
-    //     END;
-    // end;
-
-    // local procedure IsSharePointConfigured(): Boolean
-    // begin
-    //     WITH DocuSignSetup DO BEGIN
-    //         IF NOT FINDFIRST THEN
-    //             EXIT(FALSE);
-
-    //         IF ("SharePoint URL" = '') OR ("SharePoint Library Name" = '') THEN
-    //             EXIT(FALSE);
-    //     END;
-
-    //     EXIT(TRUE);
-    // end;
-
-    // [TryFunction]
-    // local procedure CheckSharePointConnection()
-    // begin
-    //     Web.Context.ExecuteQuery();
-    // end;
-
-    // local procedure CreateSharePointFolder(var FolderFullUrlP: Text)
-    // var
-    //     SharePointClientContextL: DotNet ClientContext;
-    //     SharePointClientL: DotNet SharePointOnlineCredentials;
-    //     FolderCollectionL: DotNet FolderCollection;
-    //     PasswordL: DotNet SecureString;
-    //     WebL: DotNet Web;
-    //     ListL: DotNet List;
-    //     RootFolderL: DotNet Folder;
-    //     IndexL: Integer;
-    //     PassStringL: Text;
-    //     FolderUrlL: Text;
-    //     ParentFolderUrlL: Text;
-    //     SubFolderUrlL: Text;
-    //     SharePointUrlL: Text;
-    //     StartFolderL: Text;
-    //     SlashPosL: Integer;
-    // begin
-    //     DocuSignSetup.GET;
-    //     DocuSignSetup.TESTFIELD("SharePoint URL");
-    //     SharePointUrlL := DocuSignSetup."SharePoint URL";
-
-    //     IF COPYSTR(SharePointUrlL, STRLEN(SharePointUrlL), 1) IN ['/', '\'] THEN
-    //         SharePointUrlL := DELSTR(SharePointUrlL, STRLEN(SharePointUrlL), 1);
-
-    //     SharePointClientContextL := SharePointClientContextL.ClientContext(SharePointUrlL);
-
-    //     PassStringL := DocuSignSetup.GetSharePointPassword;
-    //     PasswordL := PasswordL.SecureString;
-    //     FOR IndexL := 1 TO STRLEN(PassStringL) DO
-    //         PasswordL.AppendChar(PassStringL[IndexL]);
-
-    //     SharePointClientContextL.Credentials := SharePointClientL.SharePointOnlineCredentials(DocuSignSetup."SharePoint User Name", PasswordL);
-
-    //     Web := SharePointClientContextL.Web;
-    //     ListL := Web.Lists.GetByTitle(DocuSignSetup."SharePoint Library Name");
-    //     RootFolderL := ListL.RootFolder;
-    //     FolderCollectionL := RootFolderL.Folders;
-
-    //     StartFolderL := DocuSignSetup."SharePoint Start Folder";
-    //     IF StartFolderL <> '' THEN BEGIN
-    //         IF COPYSTR(StartFolderL, 1, 1) IN ['/', '\'] THEN
-    //             StartFolderL := DELSTR(StartFolderL, 1, 1);
-
-    //         IF COPYSTR(StartFolderL, STRLEN(StartFolderL), 1) IN ['/', '\'] THEN
-    //             StartFolderL := DELSTR(StartFolderL, STRLEN(StartFolderL), 1);
-
-    //         FolderFullUrlP := StartFolderL + '/' + FolderFullUrlP;
-    //     END;
-
-    //     SubFolderUrlL := FolderFullUrlP;
-
-    //     REPEAT
-    //         SlashPosL := STRPOS(SubFolderUrlL, '/');
-    //         FolderUrlL := COPYSTR(SubFolderUrlL, 1, SlashPosL - 1);
-    //         ParentFolderUrlL := ParentFolderUrlL + FolderUrlL;
-    //         SubFolderUrlL := DELSTR(SubFolderUrlL, 1, SlashPosL);
-    //         FolderCollectionL.Add(DocuSignSetup."SharePoint Library Name" + '/' + ParentFolderUrlL);
-    //         Web.Context.ExecuteQuery();
-    //         ParentFolderUrlL := ParentFolderUrlL + '/';
-    //     UNTIL STRLEN(SubFolderUrlL) = 0;
-    // end;
-
-    // procedure SaveCAFToSharePoint(var EnvelopeP: Record DocuSignEnvelopeVRS)
-    // var
-    //     SalesHeaderL: Record "Sales Header";
-    //     FileMgtL: Codeunit "File Management";
-    //     SharePointFolderUrlL: Text;
-    //     CAFDocumentFileNameL: Text;
-    // begin
-    //     SalesHeaderL.SETRANGE("No.", EnvelopeP."Order No.");
-    //     IF NOT SalesHeaderL.FINDFIRST THEN EXIT;
-    //     SharePointFolderUrlL := FORMAT(SalesHeaderL."Posting Date", 0, '<Year4>/<Month,2>') + '/';
-    //     CreateSharePointFolder(SharePointFolderUrlL);
-
-    //     CAFDocumentFileNameL := GetSignedCAFDocument(EnvelopeP);
-    //     UploadCAFDocumentToSharePoint(CAFDocumentFileNameL, SharePointFolderUrlL);
-
-    //     EnvelopeP."Sharepoint URL" :=
-    //       DocuSignSetup."SharePoint URL" + '/' +
-    //       DocuSignSetup."SharePoint Library Name" + '/' +
-    //       SharePointFolderUrlL + FileMgtL.GetFileName(CAFDocumentFileNameL);
-    //     EnvelopeP.MODIFY(TRUE);
-    // end;
-
     local procedure GetSignedCAFDocument(EnvelopeP: Record DocuSignEnvelopeVRS): Text
     var
         SalesHeaderL: Record "Sales Header";
@@ -726,51 +579,6 @@ codeunit 50020 "DocuSignManagementVRS"
         EXIT(CAFDocumentFileNameL);
     end;
 
-    // local procedure UploadCAFDocumentToSharePoint(CAFDocumentFileNameP: Text; var SharePointFolderUrlP: Text)
-    // var
-    //     SharePointClientContextL: DotNet ClientContext;
-    //     SharePointClientL: DotNet SharePointOnlineCredentials;
-    //     PasswordL: DotNet SecureString;
-    //     WebL: DotNet Web;
-    //     ListL: DotNet List;
-    //     RootFolderL: DotNet Folder;
-    //     FolderCollectionL: DotNet FolderCollection;
-    //     FilesL: DotNet FileCollection;
-    //     FileL: DotNet File;
-    //     FolderL: DotNet Folder;
-    //     FileStreamL: DotNet FileStream;
-    //     FileCreationInfoL: DotNet FileCreationInformation;
-    //     FileModeL: DotNet FileMode;
-    //     FileMgtL: Codeunit "419";
-    //     IndexL: Integer;
-    //     PassStringL: Text;
-    // begin
-    //     DocuSignSetup.GET;
-    //     DocuSignSetup.TESTFIELD("SharePoint URL");
-    //     SharePointClientContextL := SharePointClientContextL.ClientContext(DocuSignSetup."SharePoint URL");
-
-    //     PassStringL := DocuSignSetup.GetSharePointPassword;
-    //     PasswordL := PasswordL.SecureString;
-    //     FOR IndexL := 1 TO STRLEN(PassStringL) DO
-    //         PasswordL.AppendChar(PassStringL[IndexL]);
-
-    //     SharePointClientContextL.Credentials := SharePointClientL.SharePointOnlineCredentials(DocuSignSetup."SharePoint User Name", PasswordL);
-
-    //     Web := SharePointClientContextL.Web;
-    //     FolderL := Web.GetFolderByServerRelativeUrl(DocuSignSetup."SharePoint Library Name" + '/' + SharePointFolderUrlP);
-    //     FilesL := FolderL.Files();
-    //     FileStreamL := FileStreamL.FileStream(CAFDocumentFileNameP, FileModeL.Open);
-    //     FileCreationInfoL := FileCreationInfoL.FileCreationInformation();
-    //     FileCreationInfoL.Overwrite(TRUE);
-    //     FileCreationInfoL.Url(FileMgtL.GetFileName(CAFDocumentFileNameP));
-    //     FileCreationInfoL.ContentStream(FileStreamL);
-
-    //     FileL := FilesL.Add(FileCreationInfoL);
-    //     Web.Context.ExecuteQuery();
-
-    //     FileStreamL.Close;
-    // end;
-
     procedure UpdateRecipientsByDefault(SalesHeaderP: Record "Sales Header")
     var
         DefaultRecipientsL: Record DocuSignEnvelopeRecipientVRS;
@@ -804,48 +612,48 @@ codeunit 50020 "DocuSignManagementVRS"
             END;
     end;
 
-    local procedure SelectCAFWordLayout(SalesHeaderP: Record "Sales Header")
-    var
-        LinesCountL: Integer;
-    begin
-        LinesCountL := CalcCAFLinesCount(SalesHeaderP);
+    // local procedure SelectCAFWordLayout(SalesHeaderP: Record "Sales Header")
+    // var
+    //     LinesCountL: Integer;
+    // begin
+    //     LinesCountL := CalcCAFLinesCount(SalesHeaderP);
 
-        // CASE TRUE OF
-        //     LinesCountL <= 15:
-        //         TakeCAFWordLayout('1305-000015');
-        //     (LinesCountL <= 25) AND (LinesCountL > 15):
-        //         TakeCAFWordLayout('1305-000025');
-        //     (LinesCountL <= 30) AND (LinesCountL > 25):
-        //         TakeCAFWordLayout('1305-000030');
-        //     LinesCountL > 30:
-        //         TakeCAFWordLayout('1305-000099');
-        // END;
-    end;
+    //     CASE TRUE OF
+    //         LinesCountL <= 15:
+    //             TakeCAFWordLayout('1305-000015');
+    //         (LinesCountL <= 25) AND (LinesCountL > 15):
+    //             TakeCAFWordLayout('1305-000025');
+    //         (LinesCountL <= 30) AND (LinesCountL > 25):
+    //             TakeCAFWordLayout('1305-000030');
+    //         LinesCountL > 30:
+    //             TakeCAFWordLayout('1305-000099');
+    //     END;
+    // end;
 
-    local procedure CalcCAFLinesCount(SalesHeaderP: Record "Sales Header"): Integer
-    var
-        SalesLineL: Record "Sales Line";
-        TmpLineL: Record "Sales Line" temporary;
-    begin
-        SalesLineL.RESET;
-        SalesLineL.SETRANGE("Document Type", SalesHeaderP."Document Type");
-        SalesLineL.SETRANGE("Document No.", SalesHeaderP."No.");
-        SalesLineL.SETFILTER("Qty. to Ship", '<>0');
-        exit(SalesLineL.Count);
-        // IF SalesLineL.FINDSET THEN
-        //     REPEAT
-        //         TmpLineL.SETRANGE("Extended Description", SalesLineL."Extended Description");
-        //         IF TmpLineL.FIND('-') THEN BEGIN
-        //             TmpLineL."Qty. to Ship" += SalesLineL."Qty. to Ship";
-        //             TmpLineL.MODIFY;
-        //         END ELSE BEGIN
-        //             TmpLineL.COPY(SalesLineL);
-        //             TmpLineL.INSERT;
-        //         END;
-        //     UNTIL SalesLineL.NEXT = 0;
+    // local procedure CalcCAFLinesCount(SalesHeaderP: Record "Sales Header"): Integer
+    // var
+    //     SalesLineL: Record "Sales Line";
+    //     TmpLineL: Record "Sales Line" temporary;
+    // begin
+    //     SalesLineL.RESET;
+    //     SalesLineL.SETRANGE("Document Type", SalesHeaderP."Document Type");
+    //     SalesLineL.SETRANGE("Document No.", SalesHeaderP."No.");
+    //     SalesLineL.SETFILTER("Qty. to Ship", '<>0');
+    //     exit(SalesLineL.Count);
+    //     IF SalesLineL.FINDSET THEN
+    //         REPEAT
+    //             TmpLineL.SETRANGE("Extended Description", SalesLineL."Extended Description");
+    //             IF TmpLineL.FIND('-') THEN BEGIN
+    //                 TmpLineL."Qty. to Ship" += SalesLineL."Qty. to Ship";
+    //                 TmpLineL.MODIFY;
+    //             END ELSE BEGIN
+    //                 TmpLineL.COPY(SalesLineL);
+    //                 TmpLineL.INSERT;
+    //             END;
+    //         UNTIL SalesLineL.NEXT = 0;
 
-        // EXIT(TmpLineL.COUNT);
-    end;
+    //     EXIT(TmpLineL.COUNT);
+    // end;
 
     // local procedure TakeCAFWordLayout(CAFWorldLayoutCodeP: Code[20])
     // var
@@ -868,30 +676,30 @@ codeunit 50020 "DocuSignManagementVRS"
     //     DefaultCustomReportLayoutL.ImportLayoutBlob(TempBlobL, 'DOCX');
     // end;
 
-    local procedure FillEnvelopeCustomer()
-    var
-        EnvelopeL: Record DocuSignEnvelopeVRS;
-        SalesHeaderL: Record "Sales Header";
-        SalesInvHeaderL: Record "Sales Invoice Header";
-        EnvelopeCountL: Integer;
-    begin
-        IF EnvelopeL.FINDSET(TRUE, FALSE) THEN
-            REPEAT
-                IF SalesHeaderL.GET(SalesHeaderL."Document Type"::Order, EnvelopeL."Order No.") THEN BEGIN
-                    EnvelopeL."Customer No." := SalesHeaderL."Sell-to Customer No.";
-                    EnvelopeL.MODIFY;
-                    EnvelopeCountL += 1;
-                END ELSE BEGIN
-                    IF SalesInvHeaderL.GET(EnvelopeL."Posted Invoice No.") THEN BEGIN
-                        EnvelopeL."Customer No." := SalesInvHeaderL."Sell-to Customer No.";
-                        EnvelopeL.MODIFY;
-                        EnvelopeCountL += 1;
-                    END;
-                END;
-            UNTIL EnvelopeL.NEXT = 0;
+    // local procedure FillEnvelopeCustomer()
+    // var
+    //     EnvelopeL: Record DocuSignEnvelopeVRS;
+    //     SalesHeaderL: Record "Sales Header";
+    //     SalesInvHeaderL: Record "Sales Invoice Header";
+    //     EnvelopeCountL: Integer;
+    // begin
+    //     IF EnvelopeL.FINDSET(TRUE, FALSE) THEN
+    //         REPEAT
+    //             IF SalesHeaderL.GET(SalesHeaderL."Document Type"::Order, EnvelopeL."Order No.") THEN BEGIN
+    //                 EnvelopeL."Customer No." := SalesHeaderL."Sell-to Customer No.";
+    //                 EnvelopeL.MODIFY;
+    //                 EnvelopeCountL += 1;
+    //             END ELSE BEGIN
+    //                 IF SalesInvHeaderL.GET(EnvelopeL."Posted Invoice No.") THEN BEGIN
+    //                     EnvelopeL."Customer No." := SalesInvHeaderL."Sell-to Customer No.";
+    //                     EnvelopeL.MODIFY;
+    //                     EnvelopeCountL += 1;
+    //                 END;
+    //             END;
+    //         UNTIL EnvelopeL.NEXT = 0;
 
-        MESSAGE('Complete: %1', EnvelopeCountL);
-    end;
+    //     MESSAGE('Complete: %1', EnvelopeCountL);
+    // end;
 
     local procedure FillCAFSignerSalesHeader()
     var
@@ -913,32 +721,32 @@ codeunit 50020 "DocuSignManagementVRS"
         MESSAGE('Complete!');
     end;
 
-    procedure SendUnsignedCAF(var SalesHeaderP: Record "Sales Header")
-    var
-        SalesHeaderL: Record "Sales Header";
-        SharePointFolderUrlL: Text;
-        CAFDocumentFileNameL: Text;
-        //SendCAFMgtL: Codeunit "50003";
-        FileMgtL: Codeunit "File Management";
-    begin
-        SharePointFolderUrlL := FORMAT(SalesHeaderP."Posting Date", 0, '<Year4>/<Month,2>') + '/';
-        //CreateSharePointFolder(SharePointFolderUrlL);
+    // procedure SendUnsignedCAF(var SalesHeaderP: Record "Sales Header")
+    // var
+    //     SalesHeaderL: Record "Sales Header";
+    //     SharePointFolderUrlL: Text;
+    //     CAFDocumentFileNameL: Text;
+    //     SendCAFMgtL: Codeunit "50003";
+    //     FileMgtL: Codeunit "File Management";
+    // begin
+    //     SharePointFolderUrlL := FORMAT(SalesHeaderP."Posting Date", 0, '<Year4>/<Month,2>') + '/';
+    //     CreateSharePointFolder(SharePointFolderUrlL);
 
-        CAFDocumentFileNameL :=
-          ReplaceBadCharacters('CAF-M_' + SalesHeaderP."Sell-to Customer Name" + '_' +
-          SalesHeaderP."External Document No." + '_' + SalesHeaderP."No." + '_' +
-          GetMonthName(SalesHeaderP."Posting Date") + '-' + FORMAT(SalesHeaderP."Posting Date", 0, '<Year>') + '_' +
-          FORMAT(TIME, 0, '<Hours24,2><Filler Character,0><Minutes,2>')) + '.pdf';
-        //CAFDocumentFileNameL := SendCAFMgtL.SaveUnsignedCAFToPdf(SalesHeaderP, CAFDocumentFileNameL);
-        //UploadCAFDocumentToSharePoint(CAFDocumentFileNameL, SharePointFolderUrlL);
+    //     CAFDocumentFileNameL :=
+    //       ReplaceBadCharacters('CAF-M_' + SalesHeaderP."Sell-to Customer Name" + '_' +
+    //       SalesHeaderP."External Document No." + '_' + SalesHeaderP."No." + '_' +
+    //       GetMonthName(SalesHeaderP."Posting Date") + '-' + FORMAT(SalesHeaderP."Posting Date", 0, '<Year>') + '_' +
+    //       FORMAT(TIME, 0, '<Hours24,2><Filler Character,0><Minutes,2>')) + '.pdf';
+    //     CAFDocumentFileNameL := SendCAFMgtL.SaveUnsignedCAFToPdf(SalesHeaderP, CAFDocumentFileNameL);
+    //     UploadCAFDocumentToSharePoint(CAFDocumentFileNameL, SharePointFolderUrlL);
 
-        // SalesHeaderL.GET(SalesHeaderP."Document Type", SalesHeaderP."No.");
-        // SalesHeaderL."Unsigned CAF Link" :=
-        //   DocuSignSetup."SharePoint URL" + '/' +
-        //   DocuSignSetup."SharePoint Library Name" + '/' +
-        //   SharePointFolderUrlL + FileMgtL.GetFileName(CAFDocumentFileNameL);
-        // SalesHeaderL.MODIFY(TRUE);
-    end;
+    //     SalesHeaderL.GET(SalesHeaderP."Document Type", SalesHeaderP."No.");
+    //     SalesHeaderL."Unsigned CAF Link" :=
+    //       DocuSignSetup."SharePoint URL" + '/' +
+    //       DocuSignSetup."SharePoint Library Name" + '/' +
+    //       SharePointFolderUrlL + FileMgtL.GetFileName(CAFDocumentFileNameL);
+    //     SalesHeaderL.MODIFY(TRUE);
+    // end;
 
     procedure GetMonthName(MonthsDate: Date) Name: Text
     var
