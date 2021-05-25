@@ -7,6 +7,17 @@ tableextension 50007 "SalesHeaderExtVRS" extends "Sales Header"
 {
     fields
     {
+        modify("Sell-to Customer No.")
+        {
+            trigger OnAfterValidate()
+            var
+                Cust: Record Customer;
+            begin
+                IF Cust.Get(Rec."Sell-to Customer No.") then
+                    "CAF Signer No." := Cust."Signer No.";
+            end;
+        }
+
         field(50002; EngineerNoVRS; Code[20])
         {
             DataClassification = CustomerContent;
@@ -54,6 +65,7 @@ tableextension 50007 "SalesHeaderExtVRS" extends "Sales Header"
             end;
         }
     }
+
     var
         Contact: Record Contact;
         SalesLine: Record "Sales Line";

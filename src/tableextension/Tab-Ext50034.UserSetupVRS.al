@@ -19,6 +19,7 @@ tableextension 50034 "UserSetupVRS" extends "User Setup"
         }
         field(50003; "DocuSign Super User"; Boolean)
         {
+            Caption = 'DocuSign Super User';
         }
     }
 }
