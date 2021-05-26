@@ -397,6 +397,17 @@ codeunit 50020 "DocuSignManagementVRS"
         CarbonCopyP.RoutingOrder := FORMAT(RoutingOrderP);
     end;
 
+    procedure ListEnvelopeDocuments(var EnvelopeP: Record DocuSignEnvelopeVRS; var Result: DotNet List_Of_T)
+    var
+        EnvelopesApiL: DotNet EnvelopesApi;
+        AccountId: Text;
+    begin
+        Authorize(AccountId);
+
+        EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
+        Result := EnvelopesApiL.ListDocuments(AccountId, EnvelopeP.ID).EnvelopeDocuments;
+    end;
+
     procedure UpdateOneEnvelopeStatus(var EnvelopeP: Record DocuSignEnvelopeVRS)
     var
         EnvelopesApiL: DotNet EnvelopesApi;
