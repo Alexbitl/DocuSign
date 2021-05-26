@@ -397,15 +397,29 @@ codeunit 50020 "DocuSignManagementVRS"
         CarbonCopyP.RoutingOrder := FORMAT(RoutingOrderP);
     end;
 
-    procedure ListEnvelopeDocuments(var EnvelopeP: Record DocuSignEnvelopeVRS; var Result: DotNet List_Of_T)
+    procedure DownloadEnvelopeDocuments(var EnvelopeP: Record DocuSignEnvelopeVRS; var Result: List of [Text])
     var
         EnvelopesApiL: DotNet EnvelopesApi;
         AccountId: Text;
+        DocumentsResult: DotNet EnvelopeDocumentsResult;
+        DocumentStream: DotNet Stream;
+        FileName: Text;
+        FileMgtL: Codeunit "File Management";
+        No: Integer;
     begin
         Authorize(AccountId);
 
         EnvelopesApiL := EnvelopesApiL.EnvelopesApi(ApiClient);
-        Result := EnvelopesApiL.ListDocuments(AccountId, EnvelopeP.ID).EnvelopeDocuments;
+        DocumentsResult := EnvelopesApiL.ListDocuments(AccountId, EnvelopeP.ID);
+
+        for No := 0 to DocumentsResult.EnvelopeDocuments.Count - 1 do begin
+            DocumentStream := EnvelopesApiL.GetDocument(AccountId, EnvelopeP.ID,
+                DocumentsResult.EnvelopeDocuments.Item(No).DocumentId);
+            FileName := FileMgtL.ServerTempFileName('edoc');
+            SignApi.StreamToFile(DocumentStream, FileName);
+
+            Result.Add(FileName);
+        end;
     end;
 
     procedure UpdateOneEnvelopeStatus(var EnvelopeP: Record DocuSignEnvelopeVRS)
@@ -1120,6 +1134,7 @@ dotnet
         type("DocuSign.eSign.Api.AuthenticationApi+LoginOptions"; "AuthenticationApi_LoginOptions") { }
         type("DocuSign.eSign.Model.EnvelopeDocumentsResult"; "EnvelopeDocumentsResult") { }
         type("DocuSign.eSign.Api.EnvelopesApi+GetDocumentOptions"; "EnvelopesApi_GetDocumentOptions") { }
+        type("DocuSign.eSign.Model.EnvelopeDocument"; EnvelopeDocument) { }
     }
 
     assembly("mscorlib")
